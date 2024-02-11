@@ -22,43 +22,71 @@ class App(object):
     def _get_save_directory(self):
         self.save_directory = filedialog.askdirectory()
         self.engine.save_folder = self.save_directory
-        self.save_label.config(text=f"Усі сгенеровані документі будуть за шляхом : {self.save_directory}")
+        self.save_label.config(
+            text=f"Усі сгенеровані документі будуть за шляхом : {self.save_directory}"
+        )
 
     def _get_templates_directory(self):
         self.templates_directory = filedialog.askdirectory()
         self.engine.template_folder = self.templates_directory
-        self.template_label.config(text=f"Усі шаблони знаходяться за шляхом : {self.templates_directory}")
+        self.template_label.config(
+            text=f"Усі шаблони знаходяться за шляхом : {self.templates_directory}"
+        )
 
     def _get_data_file(self):
-        self.data_file = filedialog.askopenfilename(filetype=(('Excel', '*.xlsx'),
-                                                              ('Excel', '*.xls')))
+        self.data_file = filedialog.askopenfilename(
+            filetype=(("Excel", "*.xlsx"), ("Excel", "*.xls"))
+        )
         self.engine.data_file = self.data_file
         self.engine.read_data()
         try:
-            self.combox['values'] = list(self.engine.excel.columns)
+            self.combox["values"] = list(self.engine.excel.columns)
             self.combox.current(0)
         except AttributeError:
             pass
 
     def _set_buttons(self):
-        select_save_folder = Button((self.window), text='Зберегти в ...', command=(self._get_save_directory), width=20,
-                                    pady=5,
-                                    bd=1)
-        select_load_templates = Button((self.window), text='Папка з шаблонами', command=(self._get_templates_directory),
-                                       width=20,
-                                       pady=5,
-                                       bd=1)
-        select_data_file = Button((self.window), text='Виберіть файл даних', command=(self._get_data_file), width=20,
-                                  pady=5,
-                                  bd=1)
-        submit_button_form = Button((self.window), text='Згенерувати файл', command=(self.submit_from), width=20,
-                                    pady=5,
-                                    bd=1)
-        self.save_label = Label((self.window),
-                                text=f"Усі сгенеровані документі будуть за шляхом : {self.templates_directory}")
+        select_save_folder = Button(
+            (self.window),
+            text="Зберегти в ...",
+            command=(self._get_save_directory),
+            width=20,
+            pady=5,
+            bd=1,
+        )
+        select_load_templates = Button(
+            (self.window),
+            text="Папка з шаблонами",
+            command=(self._get_templates_directory),
+            width=20,
+            pady=5,
+            bd=1,
+        )
+        select_data_file = Button(
+            (self.window),
+            text="Виберіть файл даних",
+            command=(self._get_data_file),
+            width=20,
+            pady=5,
+            bd=1,
+        )
+        submit_button_form = Button(
+            (self.window),
+            text="Згенерувати файл",
+            command=(self.submit_from),
+            width=20,
+            pady=5,
+            bd=1,
+        )
+        self.save_label = Label(
+            (self.window),
+            text=f"Усі сгенеровані документі будуть за шляхом : {self.templates_directory}",
+        )
         self.save_label.grid(row=0, column=1, pady=3)
-        self.template_label = Label((self.window),
-                                    text=f"Усі шаблони знаходяться за шляхом : {self.templates_directory}")
+        self.template_label = Label(
+            (self.window),
+            text=f"Усі шаблони знаходяться за шляхом : {self.templates_directory}",
+        )
         self.template_label.grid(row=1, column=1, pady=3)
         self.combox = Combobox()
         select_save_folder.grid(row=0, column=0, pady=3, padx=3)
@@ -71,12 +99,14 @@ class App(object):
         self.engine.named_header = self.combox.get()
         try:
             self.engine.generate_templates()
-            messagebox.showinfo('Success', 'Усе зроблено вірно')
+            messagebox.showinfo("Success", "Усе зроблено вірно")
         except Exception as e:
             try:
                 try:
-                    messagebox.showerror('ERROR',
-                                         f"Винкла помилка зробіть скриншот цієї помилки та надішліть розробнику: \n {e}")
+                    messagebox.showerror(
+                        "ERROR",
+                        f"Винкла помилка зробіть скриншот цієї помилки та надішліть розробнику: \n {e}",
+                    )
                 finally:
                     e = None
                     del e
@@ -91,7 +121,7 @@ class App(object):
 
     def run(self):
         self.window, self.engine = Tk(), TemplateGenerator()
-        self.window.title('E2W')
-        self.window.geometry('600x200')
+        self.window.title("E2W")
+        self.window.geometry("600x200")
         self._set_buttons()
         self.window.mainloop()

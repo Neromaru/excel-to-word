@@ -5,5 +5,5 @@
 # Embedded file name: manage.py
 from canvas import App
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     App().run()
