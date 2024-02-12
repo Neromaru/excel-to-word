@@ -1,3 +1,4 @@
+import tkinter
 from pathlib import Path
 from tkinter import *
 from tkinter import filedialog
@@ -14,6 +15,7 @@ class App(object):
     combox = None
     save_directory = Path.home()
     templates_directory = Path.home()
+    top_level_saving = False
     data_file = None
     named_header = None
     save_label = None
@@ -44,6 +46,10 @@ class App(object):
             self.combox.current(0)
         except AttributeError:
             pass
+
+
+    def _set_top_level_saving(self):
+        self.engine.top_level_saving = self.top_level_saving.get()
 
     def _set_buttons(self):
         select_save_folder = Button(
@@ -78,6 +84,15 @@ class App(object):
             pady=5,
             bd=1,
         )
+        self.top_level_saving = tkinter.BooleanVar(self.window, value=False)
+        top_level_saving = tkinter.Checkbutton(
+            (self.window),
+            text="Зберегти в 1 папку усі результати ?",
+            variable=self.top_level_saving,
+            onvalue=True,
+            offvalue=False,
+            command=(self._set_top_level_saving)
+        )
         self.save_label = Label(
             (self.window),
             text=f"Усі сгенеровані документі будуть за шляхом : {self.templates_directory}",
@@ -90,6 +105,7 @@ class App(object):
         self.template_label.grid(row=1, column=1, pady=3)
         self.combox = Combobox()
         select_save_folder.grid(row=0, column=0, pady=3, padx=3)
+        top_level_saving.grid(row=0, column=2, pady=4, padx=4)
         select_load_templates.grid(row=1, column=0, pady=3, padx=3)
         select_data_file.grid(row=2, column=0, pady=3, padx=3)
         self.combox.grid(row=2, column=1, pady=3)
@@ -122,6 +138,6 @@ class App(object):
     def run(self):
         self.window, self.engine = Tk(), TemplateGenerator()
         self.window.title("E2W")
-        self.window.geometry("600x200")
+        self.window.geometry("750x200")
         self._set_buttons()
         self.window.mainloop()
