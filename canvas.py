@@ -37,7 +37,7 @@ class App(object):
 
     def _get_data_file(self):
         self.data_file = filedialog.askopenfilename(
-            filetype=(("Excel", "*.xlsx"), ("Excel", "*.xls"))
+            filetypes=(("Excel", "*.xlsx"), ("Excel", "*.xls"))
         )
         self.engine.data_file = self.data_file
         self.engine.read_data()

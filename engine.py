@@ -32,12 +32,20 @@ class TemplateGenerator(object):
     def _serialize_datetimes(self, dict_fields: dict) -> dict:
         """1970-10-18 00:00:00"""
         for key, value in dict_fields.items():
-            try:
-                dict_fields[key] = dt.datetime.strptime(
-                    value, "%Y-%m-%d %H:%M:%S"
-                ).strftime("%d.%m.%Y")
-            except:
+            if isinstance(value, pandas.Timestamp):
+                dict_fields[key] = value.strftime("%d.%m.%Y")
                 continue
+            if isinstance(value, float):
+                value = f'{value:.2f}'
+                value = value.replace('.', ',')
+                if '%' in key:
+                    dict_fields[key] = f"{value}%"
+                else:
+                    dict_fields[key] = value
+                continue
+            else:
+                dict_fields[key] = str(value)
+
 
         return dict_fields
 
@@ -59,7 +67,7 @@ class TemplateGenerator(object):
             for template in self.list_templates():
                 template_docx = MailMerge(template)
                 fields = {
-                    variable: str(row[variable])
+                    variable: row[variable]
                     for variable in template_docx.get_merge_fields()
                 }
                 serialized_fields = self._serialize_datetimes(fields)
