@@ -42,11 +42,12 @@ class App(object):
         self.engine.data_file = self.data_file
         self.engine.read_data()
         try:
-            self.combox["values"] = list(self.engine.excel.columns)
+            self.combox["values"] = [
+                i.value for i in list(self.engine.excel.iter_rows())[0]
+            ]
             self.combox.current(0)
         except AttributeError:
             pass
-
 
     def _set_top_level_saving(self):
         self.engine.top_level_saving = self.top_level_saving.get()
@@ -91,7 +92,7 @@ class App(object):
             variable=self.top_level_saving,
             onvalue=True,
             offvalue=False,
-            command=(self._set_top_level_saving)
+            command=(self._set_top_level_saving),
         )
         self.save_label = Label(
             (self.window),

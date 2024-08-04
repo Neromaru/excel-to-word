@@ -8,19 +8,24 @@ import os
 import pathlib as pl
 import uuid
 
-import pandas
 from mailmerge import MailMerge
+import openpyxl
+from openpyxl.styles.numbers import (
+    FORMAT_PERCENTAGE_00,
+    FORMAT_DATE_YYYYMMDD2,
+    FORMAT_DATE_DDMMYY,
+)
 
 
 class TemplateGenerator(object):
 
     def __init__(
-            self,
-            path_to_data=None,
-            path_to_folder=None,
-            where_to_save=None,
-            top_level_saving:bool=False,
-            named_header=None,
+        self,
+        path_to_data=None,
+        path_to_folder=None,
+        where_to_save=None,
+        top_level_saving: bool = False,
+        named_header=None,
     ):
         self.data_file = path_to_data
         self.template_folder = path_to_folder
@@ -28,52 +33,79 @@ class TemplateGenerator(object):
         self.save_folder = where_to_save
         self.named_header = named_header
         self.top_level_saving = top_level_saving
+        self._headers = None
 
-    def _serialize_datetimes(self, dict_fields: dict) -> dict:
-        """1970-10-18 00:00:00"""
-        for key, value in dict_fields.items():
-            if isinstance(value, pandas.Timestamp):
-                dict_fields[key] = value.strftime("%d.%m.%Y")
-                continue
-            if isinstance(value, float):
-                value = f'{value:.2f}'
-                value = value.replace('.', ',')
-                if '%' in key:
-                    dict_fields[key] = f"{value}%"
-                else:
-                    dict_fields[key] = value
-                continue
-            else:
-                dict_fields[key] = str(value)
+    @property
+    def headers(self):
+        if self._headers is None:
+            self._headers = [i.value for i in list(self.excel.iter_rows())[0]]
+        return self._headers
 
+    @staticmethod
+    def format_cell_value(cell):
+        """Convert cell value to a string formatted according to the cell's number format."""
+        format_code = cell.number_format
+        value = cell.value
 
-        return dict_fields
+        if not value:
+            return value
+
+        if format_code == FORMAT_PERCENTAGE_00:
+            # Handle percentage
+            return f"{value * 100:.2f}%"
+        elif format_code in [FORMAT_DATE_YYYYMMDD2, FORMAT_DATE_DDMMYY] or cell.is_date:
+            # Handle date
+            return value.strftime("%d/%m/%Y")
+        elif isinstance(value, float):
+            # Handle general number format as 000 000,00
+            return f"{value:,.2f}".replace(",", " ").replace(".", ",")
+        else:
+            # Handle all other cases
+            return str(value)
 
     def read_data(self):
-        self.excel = pandas.read_excel(self.data_file).fillna("")
+        extension = pl.Path(self.data_file).suffix
+        if extension == ".xlsx":
+            self.excel = openpyxl.load_workbook(self.data_file).active
+        elif extension == ".xls":
+            raise ValueError(
+                "Ця версія програми не підритмує старі формати Екселю будь ласка збережіть у форматі .xlsx"
+            )
+        elif not self.excel:
+            raise ValueError("Додано файл не підтримуваного формату")
 
     def generate_templates(self):
-        for idx, row in self.excel.iterrows():
-            index_name = pl.Path(f"{str(idx)}_{str(row[self.named_header])}")
-            if not self.top_level_saving:
-                write_folder = pl.Path(self.save_folder) / index_name
-                if write_folder.exists():
-                    write_folder = self.save_folder / pl.Path(
-                        index_name.name + str(uuid.uuid4())[:8]
-                    )
-                write_folder.mkdir(parents=True, exist_ok=True)
-            else:
-                write_folder = pl.Path(self.save_folder)
-            for template in self.list_templates():
-                template_docx = MailMerge(template)
-                fields = {
-                    variable: row[variable]
-                    for variable in template_docx.get_merge_fields()
-                }
-                serialized_fields = self._serialize_datetimes(fields)
-                (template_docx.merge)(**serialized_fields)
-                template_basename = f"{index_name.name}_{template.name}"
-                template_docx.write(os.path.join(write_folder, template_basename))
+        init_row = 2
+        for row in self.excel.iter_rows(min_row=init_row):
+            try:
+                self._make_template(row, init_row)
+            except Exception as e:
+                print(str(e))
+                print(str(init_row))
+                raise e
+            init_row += 1
+
+    def _make_template(self, row, row_number):
+        row = dict(zip(self.headers, row))
+        index_name = pl.Path(f"{str(row_number)}_{str(row[self.named_header].value)}")
+        if not self.top_level_saving:
+            write_folder = pl.Path(self.save_folder) / index_name
+            if write_folder.exists():
+                write_folder = self.save_folder / pl.Path(
+                    index_name.name + str(uuid.uuid4())[:8]
+                )
+            write_folder.mkdir(parents=True, exist_ok=True)
+        else:
+            write_folder = pl.Path(self.save_folder)
+        for template in self.list_templates():
+            template_docx = MailMerge(template)
+            fields = {
+                variable: self.format_cell_value(row[variable])
+                for variable in template_docx.get_merge_fields()
+            }
+            (template_docx.merge)(**fields)
+            template_basename = f"{index_name.name}_{template.name}"
+            template_docx.write(os.path.join(write_folder, template_basename))
 
     def list_templates(self):
         return pl.Path(self.template_folder).glob("*.docx")
