@@ -1,9 +1,3 @@
-# uncompyle6 version 3.5.0
-# Python bytecode 3.7 (3394)
-# Decompiled from: Python 3.7.2 (default, Dec 29 2018, 06:19:36)
-# [GCC 7.3.0]
-# Embedded file name: engine.py
-import datetime as dt
 import os
 import pathlib as pl
 import uuid
@@ -18,21 +12,18 @@ from openpyxl.styles.numbers import (
 
 
 class TemplateGenerator(object):
-
     def __init__(
         self,
-        path_to_data=None,
-        path_to_folder=None,
+        path_to_data_folder=None,
+        templates=None,
         where_to_save=None,
-        top_level_saving: bool = False,
         named_header=None,
     ):
-        self.data_file = path_to_data
-        self.template_folder = path_to_folder
+        self.data_file = path_to_data_folder
+        self.templates = templates
         self.excel = None
         self.save_folder = where_to_save
         self.named_header = named_header
-        self.top_level_saving = top_level_saving
         self._headers = None
 
     @property
@@ -88,24 +79,28 @@ class TemplateGenerator(object):
     def _make_template(self, row, row_number):
         row = dict(zip(self.headers, row))
         index_name = pl.Path(f"{str(row_number)}_{str(row[self.named_header].value)}")
-        if not self.top_level_saving:
-            write_folder = pl.Path(self.save_folder) / index_name
-            if write_folder.exists():
-                write_folder = self.save_folder / pl.Path(
-                    index_name.name + str(uuid.uuid4())[:8]
-                )
-            write_folder.mkdir(parents=True, exist_ok=True)
-        else:
-            write_folder = pl.Path(self.save_folder)
-        for template in self.list_templates():
+
+        write_folder = pl.Path(self.save_folder) / index_name
+        if write_folder.exists():
+            write_folder = self.save_folder / pl.Path(
+                index_name.name + str(uuid.uuid4())[:8]
+            )
+        write_folder.mkdir(parents=True, exist_ok=True)
+
+        for template in self.templates:
             template_docx = MailMerge(template)
+            template_fields = template_docx.get_merge_fields()
+
+            if missings := [item for item in template_fields if item not in row.keys()]:
+                raise ValueError(
+                    f"Помилка з шаблоном {template}"
+                    f"Недостатньо полів для заповнення. Невистачає поля: {missings}"
+                )
+
             fields = {
                 variable: self.format_cell_value(row[variable])
-                for variable in template_docx.get_merge_fields()
+                for variable in template_fields
             }
             (template_docx.merge)(**fields)
             template_basename = f"{index_name.name}_{template.name}"
             template_docx.write(os.path.join(write_folder, template_basename))
-
-    def list_templates(self):
-        return pl.Path(self.template_folder).glob("*.docx")
