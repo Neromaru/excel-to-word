@@ -23,6 +23,7 @@ class App(object):
     data_file = None
 
     named_header = None
+    save_by_folder = None
 
     def create_template_widgets(self):
         # Button to choose template directory
@@ -134,7 +135,16 @@ class App(object):
         self.data_file_button.pack(pady=(0, BUTTON_PUDDING))
         combox_label = ttk.Label(text="Виберіть параметр зберігання назви")
         combox_label.pack(pady=(BUTTON_PUDDING, 0))
+
+        self.save_by_folder = tk.BooleanVar()
+        self.folder_saver = ttk.Checkbutton(
+            self.window,
+            text="Згрупувати по папкам",
+            variable=self.save_by_folder,
+        )
+
         self.combox.pack(pady=(0, BUTTON_PUDDING))
+        self.folder_saver.pack(pady=(0, 10))
         submit_button_form.pack(pady=BUTTON_PUDDING)
 
     def submit_from(self):
@@ -143,6 +153,7 @@ class App(object):
             self.templates_directory / Path(i)
             for i in self.template_listbox.selection_get().split("\n")
         ]
+        self.engine.set_group_by_headers(self.save_by_folder.get())
         try:
             self.engine.generate_templates()
             messagebox.showinfo("Успіх", "Усе зроблено вірно")

@@ -25,12 +25,16 @@ class TemplateGenerator(object):
         self.save_folder = where_to_save
         self.named_header = named_header
         self._headers = None
+        self._group_by_headers: bool = False
 
     @property
     def headers(self):
         if self._headers is None:
             self._headers = [i.value for i in list(self.excel.iter_rows())[0]]
         return self._headers
+
+    def set_group_by_headers(self, toggle: bool) -> None:
+        self._group_by_headers = toggle
 
     @staticmethod
     def format_cell_value(cell):
@@ -79,13 +83,15 @@ class TemplateGenerator(object):
     def _make_template(self, row, row_number):
         row = dict(zip(self.headers, row))
         index_name = pl.Path(f"{str(row_number)}_{str(row[self.named_header].value)}")
-
-        write_folder = pl.Path(self.save_folder) / index_name
-        if write_folder.exists():
-            write_folder = self.save_folder / pl.Path(
-                index_name.name + str(uuid.uuid4())[:8]
-            )
-        write_folder.mkdir(parents=True, exist_ok=True)
+        if self._group_by_headers:
+            write_folder = pl.Path(self.save_folder) / index_name
+            if write_folder.exists():
+                write_folder = self.save_folder / pl.Path(
+                    index_name.name + str(uuid.uuid4())[:8]
+                )
+            write_folder.mkdir(parents=True, exist_ok=True)
+        else:
+            write_folder = pl.Path(self.save_folder)
 
         for template in self.templates:
             template_docx = MailMerge(template)
