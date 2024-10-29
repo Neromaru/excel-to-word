@@ -50,7 +50,7 @@ class TemplateGenerator(object):
             return f"{value * 100:.2f}%"
         elif format_code in [FORMAT_DATE_YYYYMMDD2, FORMAT_DATE_DDMMYY] or cell.is_date:
             # Handle date
-            return value.strftime("%d/%m/%Y")
+            return value.strftime("%d.%m.%Y")
         elif isinstance(value, float):
             # Handle general number format as 000 000,00
             return f"{value:,.2f}".replace(",", " ").replace(".", ",")
