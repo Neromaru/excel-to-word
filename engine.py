@@ -4,6 +4,7 @@ import uuid
 import re
 from collections import defaultdict
 
+import jinja2
 from docxtpl import DocxTemplate
 import openpyxl
 from openpyxl.styles.numbers import (
@@ -28,6 +29,12 @@ class TemplateGenerator(object):
         self.named_header = named_header
         self._headers = None
         self._group_by_headers: bool = False
+
+    @staticmethod
+    def format_float(number):
+        integer_part, decimal_part = f"{number:.2f}".split(".")
+        formatted_integer = "{:,}".format(int(integer_part)).replace(",", "")
+        return f"{formatted_integer},{decimal_part}"
 
     def group_headers_and_values(self, headers, row):
         pattern = r"\b(\w+)(\d+)\b"
@@ -111,6 +118,10 @@ class TemplateGenerator(object):
                 for variable in self.headers
             }
             fields["МНОЖИНИ"] = self.group_headers_and_values(self.headers, row)
-            template_docx.render(fields)
+
+            jinja_env = jinja2.Environment()
+            jinja_env.filters["КОМА"] = self.format_float
+
+            template_docx.render(fields, jinja_env)
             template_basename = f"{index_name.name}_{template.name}"
             template_docx.save(os.path.join(write_folder, template_basename))
