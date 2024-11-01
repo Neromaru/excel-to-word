@@ -1,4 +1,4 @@
-docx-mailmerge==0.5.0
+docxtpl==0.18.0
 lxml==5.1.0
 numpy==1.26.4
 openpyxl==3.1.2

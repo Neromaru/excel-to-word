@@ -1,8 +1,10 @@
 import os
 import pathlib as pl
 import uuid
+import re
+from collections import defaultdict
 
-from mailmerge import MailMerge
+from docxtpl import DocxTemplate
 import openpyxl
 from openpyxl.styles.numbers import (
     FORMAT_PERCENTAGE_00,
@@ -26,6 +28,19 @@ class TemplateGenerator(object):
         self.named_header = named_header
         self._headers = None
         self._group_by_headers: bool = False
+
+    def group_headers_and_values(self, headers, row):
+        pattern = r"\b(\w+)(\d+)\b"
+        grouped_data = defaultdict(dict)
+
+        for header in headers:
+            match = re.search(pattern, header)
+            if match:
+                base, number = match.groups()
+                if row[header].internal_value is not None:
+                    grouped_data[number][base] = self.format_cell_value(row[header])
+
+        return [{"number": key, **value} for key, value in grouped_data.items()]
 
     @property
     def headers(self):
@@ -72,12 +87,7 @@ class TemplateGenerator(object):
     def generate_templates(self):
         init_row = 2
         for row in self.excel.iter_rows(min_row=init_row):
-            try:
-                self._make_template(row, init_row)
-            except Exception as e:
-                print(str(e))
-                print(str(init_row))
-                raise e
+            self._make_template(row, init_row)
             init_row += 1
 
     def _make_template(self, row, row_number):
@@ -94,19 +104,13 @@ class TemplateGenerator(object):
             write_folder = pl.Path(self.save_folder)
 
         for template in self.templates:
-            template_docx = MailMerge(template)
-            template_fields = template_docx.get_merge_fields()
-
-            if missings := [item for item in template_fields if item not in row.keys()]:
-                raise ValueError(
-                    f"Помилка з шаблоном {template}"
-                    f"Недостатньо полів для заповнення. Невистачає поля: {missings}"
-                )
+            template_docx = DocxTemplate(template)
 
             fields = {
                 variable: self.format_cell_value(row[variable])
-                for variable in template_fields
+                for variable in self.headers
             }
-            (template_docx.merge)(**fields)
+            fields["МНОЖИНИ"] = self.group_headers_and_values(self.headers, row)
+            template_docx.render(fields)
             template_basename = f"{index_name.name}_{template.name}"
-            template_docx.write(os.path.join(write_folder, template_basename))
+            template_docx.save(os.path.join(write_folder, template_basename))
