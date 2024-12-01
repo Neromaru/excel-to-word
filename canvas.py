@@ -170,7 +170,6 @@ class App(object):
                 e = None
                 del e
                 return
-        messagebox.showinfo("Success", "Усе зроблено вірно")
 
     def pack_widgets(self):
         self.create_template_widgets()

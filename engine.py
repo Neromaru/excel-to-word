@@ -41,6 +41,8 @@ class TemplateGenerator(object):
         grouped_data = defaultdict(dict)
 
         for header in headers:
+            if header is None:
+                continue
             match = re.search(pattern, header)
             if match:
                 base, number = match.groups()
