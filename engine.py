@@ -3,6 +3,7 @@ import pathlib as pl
 import uuid
 import re
 from collections import defaultdict
+from typing import Union
 
 import jinja2
 from docxtpl import DocxTemplate
@@ -31,7 +32,9 @@ class TemplateGenerator(object):
         self._group_by_headers: bool = False
 
     @staticmethod
-    def format_float(number):
+    def format_float(number: Union[tuple, int]):
+        if isinstance(number, tuple):
+            number = number[0]
         integer_part, decimal_part = f"{number:.2f}".split(".")
         formatted_integer = "{:,}".format(int(integer_part)).replace(",", "")
         return f"{formatted_integer},{decimal_part}"
@@ -117,7 +120,7 @@ class TemplateGenerator(object):
 
             fields = {
                 variable: self.format_cell_value(row[variable])
-                for variable in self.headers
+                for variable in self.headers if variable
             }
             fields["МНОЖИНИ"] = self.group_headers_and_values(self.headers, row)
 
